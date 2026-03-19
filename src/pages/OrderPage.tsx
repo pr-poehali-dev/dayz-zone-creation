@@ -1,24 +1,15 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
+import { ordersApi, type AppOrder, type AppUser } from '@/lib/api';
+
+export type Order = AppOrder;
 
 interface OrderPageProps {
   initialCategory?: string;
   user: { name: string; avatar: string; isAdmin: boolean } | null;
   onLogin: () => void;
   onOrderCreated: (order: Order) => void;
-}
-
-export interface Order {
-  id: string;
-  category: string;
-  title: string;
-  status: 'pending' | 'reviewing' | 'in_progress' | 'done' | 'cancelled';
-  createdAt: string;
-  budget: string;
-  deadline: string;
-  details: Record<string, string>;
-  clientName: string;
-  reports: { date: string; text: string; author: string }[];
+  apiUser?: AppUser | null;
 }
 
 const categories = [
@@ -77,21 +68,36 @@ export default function OrderPage({ initialCategory, user, onLogin, onOrderCreat
 
   const cat = categories.find(c => c.id === selectedCategory);
 
-  const handleSubmit = () => {
-    const order: Order = {
-      id: `ZN-${Date.now().toString(36).toUpperCase()}`,
-      category: cat?.label || selectedCategory,
-      title: formData[Object.keys(formData)[0]] || 'Новый заказ',
-      status: 'pending',
-      createdAt: new Date().toLocaleDateString('ru-RU'),
-      budget: selectedBudget === 'Свой бюджет' ? customBudget : selectedBudget,
-      deadline: selectedDeadline === 'Свой срок' ? customDeadline : selectedDeadline,
-      details: formData,
-      clientName: user?.name || 'Гость',
-      reports: [],
-    };
-    onOrderCreated(order);
-    setCreatedOrder(order);
+  const handleSubmit = async () => {
+    try {
+      const data = await ordersApi.create({
+        category: cat?.label || selectedCategory,
+        title: formData[Object.keys(formData)[0]] || 'Новый заказ',
+        budget: selectedBudget === 'Свой бюджет' ? customBudget : selectedBudget,
+        deadline: selectedDeadline === 'Свой срок' ? customDeadline : selectedDeadline,
+        details: formData,
+        clientName: user?.name || 'Гость',
+      });
+      onOrderCreated(data.order);
+      setCreatedOrder(data.order);
+    } catch {
+      // fallback local
+      const fallback: Order = {
+        id: `ZN-${Date.now().toString(36).toUpperCase()}`,
+        category: cat?.label || selectedCategory,
+        title: formData[Object.keys(formData)[0]] || 'Новый заказ',
+        status: 'pending',
+        createdAt: new Date().toLocaleDateString('ru-RU'),
+        budget: selectedBudget === 'Свой бюджет' ? customBudget : selectedBudget,
+        deadline: selectedDeadline === 'Свой срок' ? customDeadline : selectedDeadline,
+        details: formData,
+        clientName: user?.name || 'Гость',
+        clientId: '',
+        reports: [],
+      };
+      onOrderCreated(fallback);
+      setCreatedOrder(fallback);
+    }
     setSubmitted(true);
   };
 

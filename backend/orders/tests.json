@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "name": "GET orders unauthorized",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 401
+    }
+  ]
+}

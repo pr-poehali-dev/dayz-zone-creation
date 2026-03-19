@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
+import type { NewsItem } from '@/lib/api';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
   onOrderClick: () => void;
+  news?: NewsItem[];
 }
 
 const services = [
@@ -68,28 +70,10 @@ const reviews = [
   }
 ];
 
-const news = [
-  {
-    tag: 'Обновление',
-    title: 'Новый мод для выживания v2.5 уже доступен',
-    desc: 'Добавили систему голода, температуры и уникальные локации...',
-    date: '19 марта 2026',
-    color: '#00ff88'
-  },
-  {
-    tag: 'Релиз',
-    title: 'Discord бот ZONE Guard обновлён до v3.0',
-    desc: 'Умная антиспам защита, система рейтинга и ежедневные квесты...',
-    date: '15 марта 2026',
-    color: '#00ffff'
-  },
-  {
-    tag: 'Портфолио',
-    title: 'Завершён крупный проект: сервер BlackOut',
-    desc: 'Кастомный сервер на 150 игроков с уникальной экономикой...',
-    date: '10 марта 2026',
-    color: '#ff0040'
-  }
+const defaultNews = [
+  { id: 'n1', tag: 'Обновление', title: 'Новый мод для выживания v2.5 уже доступен', content: 'Добавили систему голода, температуры и уникальные локации...', createdAt: '19.03.2026', color: '#00ff88', authorName: 'Admin', updatedAt: '' },
+  { id: 'n2', tag: 'Релиз', title: 'Discord бот ZONE Guard обновлён до v3.0', content: 'Умная антиспам защита, система рейтинга и ежедневные квесты...', createdAt: '15.03.2026', color: '#00ffff', authorName: 'Admin', updatedAt: '' },
+  { id: 'n3', tag: 'Портфолио', title: 'Завершён крупный проект: сервер BlackOut', content: 'Кастомный сервер на 150 игроков с уникальной экономикой...', createdAt: '10.03.2026', color: '#ff0040', authorName: 'Admin', updatedAt: '' },
 ];
 
 const stats = [
@@ -99,7 +83,8 @@ const stats = [
   { value: '3+', label: 'Года опыта', icon: 'Trophy' },
 ];
 
-export default function HomePage({ onNavigate, onOrderClick }: HomePageProps) {
+export default function HomePage({ onNavigate, onOrderClick, news: newsProp }: HomePageProps) {
+  const news = (newsProp && newsProp.length > 0) ? newsProp : defaultNews;
   const [currentStat, setCurrentStat] = useState(0);
   const [typedText, setTypedText] = useState('');
   const fullText = 'ДОБРО ПОЖАЛОВАТЬ В ЗОНУ';
@@ -304,15 +289,15 @@ export default function HomePage({ onNavigate, onOrderClick }: HomePageProps) {
 
           <div className="space-y-4">
             {news.map((n, i) => (
-              <div key={i} className="glass-card p-6 rounded-lg flex items-start gap-6 group hover:border-opacity-60 transition-all duration-300 cursor-pointer">
+              <div key={n.id || i} className="glass-card p-6 rounded-lg flex items-start gap-6 group hover:border-opacity-60 transition-all duration-300 cursor-pointer">
                 <div className="w-1 self-stretch rounded-full flex-shrink-0" style={{ background: n.color, boxShadow: `0 0 10px ${n.color}` }}></div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-xs font-mono px-2 py-1 rounded" style={{ background: `${n.color}15`, color: n.color, border: `1px solid ${n.color}30` }}>{n.tag}</span>
-                    <span className="text-xs font-mono text-gray-600">{n.date}</span>
+                    <span className="text-xs font-mono text-gray-600">{n.createdAt}</span>
                   </div>
                   <h3 className="font-orbitron font-700 text-white text-sm mb-2 group-hover:text-neon-green transition-colors">{n.title}</h3>
-                  <p className="font-rajdhani text-gray-400 text-sm">{n.desc}</p>
+                  <p className="font-rajdhani text-gray-400 text-sm">{n.content}</p>
                 </div>
                 <Icon name="ChevronRight" size={16} className="text-gray-600 group-hover:text-neon-green transition-colors flex-shrink-0 mt-1" />
               </div>
