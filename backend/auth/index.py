@@ -14,9 +14,9 @@ CORS = {
     'Access-Control-Allow-Headers': 'Content-Type, X-Session-Id',
 }
 
-DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID', '')
-DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET', '')
-DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', '')
+DISCORD_CLIENT_ID = os.environ.get('1484510235124170842', '')
+DISCORD_CLIENT_SECRET = os.environ.get('UqAqivxtpIEiz56IJl2opGXw_kXNzqXJ', '')
+DISCORD_REDIRECT_URI = os.environ.get('zonedayz.ru', '')
 
 
 def get_conn():
