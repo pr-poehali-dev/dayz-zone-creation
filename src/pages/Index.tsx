@@ -105,7 +105,7 @@ export default function Index() {
       return;
     }
     const redirect = encodeURIComponent(window.location.origin);
-    window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${1453041044877873316}&redirect_uri=${zonedayz.ru}&response_type=code&scope=identify`;
+    window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${1453041044877873316}&redirect_uri=${https://zonedayz.ru}&response_type=code&scope=identify`;
   };
 
   const handleLogout = async () => {
