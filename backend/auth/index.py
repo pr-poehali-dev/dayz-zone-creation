@@ -16,7 +16,7 @@ CORS = {
 
 DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID', '1453041044877873316')
 DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET', 'uC1pFFAQaUI5VqCAtHCIiHyEwiUOw58z')
-DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', 'https://zonedayz.ru')
+DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', 'zonedayz.ru')
 
 
 def get_conn():
