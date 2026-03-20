@@ -14,7 +14,6 @@ const navItems = [
   { id: 'services', label: 'Услуги', icon: 'Layers' },
   { id: 'portfolio', label: 'Портфолио', icon: 'FolderOpen' },
   { id: 'orders', label: 'Заказы', icon: 'ShoppingCart' },
-  { id: 'promocodes', label: 'Промокоды', icon: 'Tag' },
   { id: 'support', label: 'Поддержка', icon: 'Headphones' },
 ];
 
@@ -48,7 +47,7 @@ export default function Navbar({ currentPage, onNavigate, user, onLogin, onLogou
               }`}
               style={currentPage === item.id ? { textShadow: '0 0 8px #00ff88' } : {}}
             >
-              <Icon name={item.icon as Parameters<typeof Icon>[0]['name']} size={14} />
+              <Icon name={item.icon as any} size={14} />
               {item.label}
               {currentPage === item.id && (
                 <span className="absolute bottom-0 left-0 right-0 h-px" style={{ background: '#00ff88', boxShadow: '0 0 5px #00ff88' }}></span>
@@ -124,7 +123,7 @@ export default function Navbar({ currentPage, onNavigate, user, onLogin, onLogou
                 onClick={() => { onNavigate(item.id); setMenuOpen(false); }}
                 className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-rajdhani font-600 tracking-wider uppercase ${currentPage === item.id ? 'text-neon-green' : 'text-gray-400'}`}
               >
-                <Icon name={item.icon as Parameters<typeof Icon>[0]['name']} size={16} />
+                <Icon name={item.icon as any} size={16} />
                 {item.label}
               </button>
             ))}
