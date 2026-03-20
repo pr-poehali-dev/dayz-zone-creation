@@ -1,11 +1,11 @@
 {
   "tests": [
     {
-      "name": "GET news list",
+      "name": "GET /promocodes — список активных",
       "method": "GET",
       "path": "/",
       "expectedStatus": 200,
-      "expectedBody": {"news": []},
+      "expectedBody": {"promocodes": []},
       "bodyMatcher": "partial"
     }
   ]

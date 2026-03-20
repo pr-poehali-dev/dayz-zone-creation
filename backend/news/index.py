@@ -102,6 +102,18 @@ def handler(event: dict, context) -> dict:
                 return {'statusCode': 404, 'headers': CORS, 'body': json.dumps({'error': 'Not found'})}
             return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'news': row_to_news(row)})}
 
+        # DELETE — удалить новость (только админ)
+        if method == 'DELETE':
+            user = get_session_user(session_id, conn)
+            if not user or not user['isAdmin']:
+                return {'statusCode': 403, 'headers': CORS, 'body': json.dumps({'error': 'Forbidden'})}
+            body = json.loads(event.get('body') or '{}')
+            news_id = body.get('id', '')
+            cur.execute(f"DELETE FROM {SCHEMA}.news WHERE id=%s", (news_id,))
+            conn.commit()
+            cur.close()
+            return {'statusCode': 200, 'headers': CORS, 'body': json.dumps({'ok': True})}
+
         return {'statusCode': 404, 'headers': CORS, 'body': json.dumps({'error': 'Not found'})}
     finally:
         conn.close()

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
-import { newsApi, ordersApi, ticketsApi, type NewsItem, type AppOrder, type AppTicket } from '@/lib/api';
+import { newsApi, ordersApi, ticketsApi, promocodesApi, type NewsItem, type AppOrder, type AppTicket, type Promocode, type AppUser } from '@/lib/api';
 
 interface AdminPageProps {
+  user: AppUser | null;
   onLogin: () => void;
 }
 
@@ -28,57 +29,14 @@ const NEWS_COLORS = [
   { label: 'Жёлтый', value: '#ffff00' },
 ];
 
-function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const handleLogin = () => {
-    if (login === 'Admin' && password === 'Admin2026') { onSuccess(); }
-    else { setError('Неверный логин или пароль'); }
-  };
-  return (
-    <div className="pt-24 pb-16 px-4 min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,0,64,0.15)', border: '2px solid rgba(255,0,64,0.5)', boxShadow: '0 0 30px rgba(255,0,64,0.3)' }}>
-            <Icon name="Shield" size={28} style={{ color: '#ff0040' }} />
-          </div>
-          <h1 className="font-orbitron text-2xl font-900 mb-2" style={{ color: '#ff0040', textShadow: '0 0 15px rgba(255,0,64,0.5)' }}>ADMIN PANEL</h1>
-          <div className="text-xs font-mono text-gray-600">// ДОСТУП ОГРАНИЧЕН</div>
-        </div>
-        <div className="glass-card p-8 rounded-xl" style={{ borderColor: 'rgba(255,0,64,0.2)' }}>
-          <div className="space-y-5">
-            <div>
-              <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">ЛОГИН</label>
-              <input type="text" value={login} onChange={e => setLogin(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg font-rajdhani text-sm focus:outline-none"
-                style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#e0e0e0' }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-            </div>
-            <div>
-              <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">ПАРОЛЬ</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg font-rajdhani text-sm focus:outline-none"
-                style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#e0e0e0' }}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-            </div>
-            {error && <div className="flex items-center gap-2 text-xs font-rajdhani" style={{ color: '#ff0040' }}><Icon name="AlertCircle" size={14} />{error}</div>}
-            <button onClick={handleLogin} className="neon-btn-red w-full py-3 text-sm rounded mt-2">Войти в панель</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+type Tab = 'dashboard' | 'orders' | 'tickets' | 'news' | 'promocodes';
 
-type Tab = 'dashboard' | 'orders' | 'tickets' | 'news';
-
-export default function AdminPage({ onLogin }: AdminPageProps) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export default function AdminPage({ user, onLogin }: AdminPageProps) {
   const [tab, setTab] = useState<Tab>('dashboard');
   const [orders, setOrders] = useState<AppOrder[]>([]);
   const [tickets, setTickets] = useState<AppTicket[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [promos, setPromos] = useState<Promocode[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AppOrder | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<AppTicket | null>(null);
@@ -87,32 +45,70 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
   const [newsForm, setNewsForm] = useState({ title: '', content: '', tag: 'Обновление', color: '#00ff88' });
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
   const [newsSaved, setNewsSaved] = useState(false);
+  const [promoForm, setPromoForm] = useState({ code: '', description: '', discountType: 'percent' as 'percent' | 'fixed', discountValue: 10, maxUses: '' });
+  const [editingPromo, setEditingPromo] = useState<Promocode | null>(null);
+  const [promoSaved, setPromoSaved] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [o, t, n] = await Promise.all([
+      const [o, t, n, p] = await Promise.all([
         ordersApi.list().catch(() => ({ orders: [] })),
         ticketsApi.list().catch(() => ({ tickets: [] })),
         newsApi.list().catch(() => ({ news: [] })),
+        promocodesApi.list().catch(() => ({ promocodes: [] })),
       ]);
       setOrders(o.orders);
       setTickets(t.tickets);
       setNews(n.news);
+      setPromos(p.promocodes);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { if (isLoggedIn) load(); }, [isLoggedIn]);
+  useEffect(() => { if (user?.isAdmin) load(); }, [user]);
 
-  if (!isLoggedIn) return <AdminLogin onSuccess={() => setIsLoggedIn(true)} />;
+  // Не админ — показываем заглушку
+  if (!user) {
+    return (
+      <div className="pt-24 pb-16 px-4 min-h-screen flex items-center justify-center">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,0,64,0.15)', border: '2px solid rgba(255,0,64,0.5)', boxShadow: '0 0 30px rgba(255,0,64,0.3)' }}>
+            <Icon name="Shield" size={28} style={{ color: '#ff0040' }} />
+          </div>
+          <h1 className="font-orbitron text-2xl font-900 mb-2" style={{ color: '#ff0040', textShadow: '0 0 15px rgba(255,0,64,0.5)' }}>ADMIN PANEL</h1>
+          <div className="text-xs font-mono text-gray-600 mb-8">// ТРЕБУЕТСЯ АВТОРИЗАЦИЯ</div>
+          <div className="glass-card p-8 rounded-xl" style={{ borderColor: 'rgba(255,0,64,0.2)' }}>
+            <p className="font-rajdhani text-gray-400 mb-6">Для доступа к панели управления необходимо войти через Discord с аккаунтом администратора.</p>
+            <button onClick={onLogin} className="neon-btn-red w-full py-3 text-sm rounded flex items-center justify-center gap-2">
+              <Icon name="LogIn" size={16} />
+              Войти через Discord
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user.isAdmin) {
+    return (
+      <div className="pt-24 pb-16 px-4 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Icon name="ShieldOff" size={48} style={{ color: '#ff0040', margin: '0 auto 16px' }} />
+          <h1 className="font-orbitron text-xl font-900 mb-2" style={{ color: '#ff0040' }}>ДОСТУП ЗАПРЕЩЁН</h1>
+          <div className="font-rajdhani text-gray-500">Твой аккаунт не имеет прав администратора.</div>
+        </div>
+      </div>
+    );
+  }
 
   const stats = {
     orders: orders.length,
     pendingOrders: orders.filter(o => o.status === 'pending').length,
     openTickets: tickets.filter(t => t.status === 'open').length,
     news: news.length,
+    promos: promos.length,
   };
 
   // ORDER DETAIL
@@ -196,7 +192,7 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
                     <button key={s} onClick={() => handleStatus(s)}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-rajdhani font-600 transition-all"
                       style={selectedOrder.status === s ? { background: `${c.color}20`, border: `1px solid ${c.color}50`, color: c.color } : { border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
-                      <Icon name={c.icon as any} size={14} />{c.label}
+                      <Icon name={c.icon as Parameters<typeof Icon>[0]['name']} size={14} />{c.label}
                     </button>
                   );
                 })}
@@ -308,11 +304,51 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
     setTimeout(() => setNewsSaved(false), 2500);
   };
 
+  const handleDeleteNews = async (id: string) => {
+    if (!confirm('Удалить новость?')) return;
+    await newsApi.delete(id);
+    setNews(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleSavePromo = async () => {
+    if (!promoForm.code.trim()) return;
+    const data = {
+      code: promoForm.code,
+      description: promoForm.description,
+      discountType: promoForm.discountType,
+      discountValue: promoForm.discountValue,
+      maxUses: promoForm.maxUses ? parseInt(promoForm.maxUses) : null,
+    };
+    if (editingPromo) {
+      const updated = await promocodesApi.update({ ...editingPromo, ...data });
+      setPromos(prev => prev.map(p => p.id === updated.promo.id ? updated.promo : p));
+    } else {
+      const created = await promocodesApi.create(data);
+      setPromos(prev => [created.promo, ...prev]);
+    }
+    setPromoForm({ code: '', description: '', discountType: 'percent', discountValue: 10, maxUses: '' });
+    setEditingPromo(null);
+    setPromoSaved(true);
+    setTimeout(() => setPromoSaved(false), 2500);
+  };
+
+  const handleDeletePromo = async (id: string) => {
+    if (!confirm('Удалить промокод?')) return;
+    await promocodesApi.delete(id);
+    setPromos(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleTogglePromo = async (promo: Promocode) => {
+    const updated = await promocodesApi.update({ ...promo, isActive: !promo.isActive });
+    setPromos(prev => prev.map(p => p.id === updated.promo.id ? updated.promo : p));
+  };
+
   const tabs: { id: Tab; label: string; icon: string; badge?: number }[] = [
     { id: 'dashboard', label: 'Обзор', icon: 'LayoutDashboard' },
     { id: 'orders', label: 'Заказы', icon: 'ShoppingCart', badge: stats.pendingOrders },
     { id: 'tickets', label: 'Тикеты', icon: 'Headphones', badge: stats.openTickets },
     { id: 'news', label: 'Новости', icon: 'Newspaper' },
+    { id: 'promocodes', label: 'Промокоды', icon: 'Tag' },
   ];
 
   return (
@@ -325,11 +361,12 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
             <h1 className="font-orbitron text-3xl font-900" style={{ color: '#ff0040', textShadow: '0 0 15px rgba(255,0,64,0.4)' }}>Admin Panel</h1>
           </div>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.2)' }}>
+              {user.avatar && <img src={user.avatar} alt="" className="w-6 h-6 rounded-full" />}
+              <span className="font-mono text-xs" style={{ color: '#00ff88' }}>{user.username}</span>
+            </div>
             <button onClick={load} className="flex items-center gap-2 text-xs font-rajdhani text-gray-500 hover:text-neon-green transition-colors px-3 py-2 rounded border border-gray-800 hover:border-neon-green">
-              <Icon name="RefreshCw" size={14} />Обновить
-            </button>
-            <button onClick={() => setIsLoggedIn(false)} className="flex items-center gap-2 text-xs font-rajdhani text-gray-500 hover:text-neon-red transition-colors">
-              <Icon name="LogOut" size={14} />Выйти
+              <Icon name="RefreshCw" size={14} />{loading ? '...' : 'Обновить'}
             </button>
           </div>
         </div>
@@ -340,7 +377,7 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex items-center gap-2 px-5 py-2 text-xs font-orbitron font-600 tracking-wider uppercase rounded transition-all duration-300 relative"
               style={tab === t.id ? { background: 'rgba(255,0,64,0.2)', border: '1px solid rgba(255,0,64,0.5)', color: '#ff0040' } : { border: '1px solid rgba(255,255,255,0.1)', color: '#666' }}>
-              <Icon name={t.icon as any} size={14} />
+              <Icon name={t.icon as Parameters<typeof Icon>[0]['name']} size={14} />
               {t.label}
               {t.badge !== undefined && t.badge > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-xs flex items-center justify-center font-orbitron" style={{ background: '#ff0040', color: '#fff', fontSize: '9px' }}>{t.badge}</span>
@@ -352,15 +389,16 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
         {/* DASHBOARD */}
         {tab === 'dashboard' && (
           <div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               {[
                 { label: 'Всего заказов', value: stats.orders, color: '#00ff88', icon: 'ShoppingCart' },
                 { label: 'Новых заказов', value: stats.pendingOrders, color: '#ffff00', icon: 'Clock' },
                 { label: 'Открытых тикетов', value: stats.openTickets, color: '#ff0040', icon: 'Headphones' },
                 { label: 'Новостей', value: stats.news, color: '#00ffff', icon: 'Newspaper' },
+                { label: 'Промокодов', value: stats.promos, color: '#ff88ff', icon: 'Tag' },
               ].map((s, i) => (
                 <div key={i} className="glass-card p-5 rounded-xl text-center" style={{ borderColor: `${s.color}20` }}>
-                  <Icon name={s.icon as any} size={20} className="mx-auto mb-2" style={{ color: s.color }} />
+                  <Icon name={s.icon as Parameters<typeof Icon>[0]['name']} size={20} className="mx-auto mb-2" style={{ color: s.color }} />
                   <div className="font-orbitron text-2xl font-900" style={{ color: s.color, textShadow: `0 0 10px ${s.color}` }}>{s.value}</div>
                   <div className="font-rajdhani text-xs text-gray-500 mt-1">{s.label}</div>
                 </div>
@@ -405,34 +443,27 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
         {/* ORDERS */}
         {tab === 'orders' && (
           <div className="glass-card rounded-xl overflow-hidden" style={{ borderColor: 'rgba(255,0,64,0.2)' }}>
-            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'rgba(255,0,64,0.15)' }}>
-              <div className="text-xs font-mono text-gray-500 tracking-widest">// ВСЕ ЗАКАЗЫ</div>
-              <span className="font-mono text-xs text-gray-600">{orders.length} заявок</span>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,0,64,0.1)' }}>
+              <div className="text-xs font-mono text-gray-500 tracking-widest">// ЗАКАЗЫ ({orders.length})</div>
             </div>
             {orders.length === 0 ? (
-              <div className="py-20 text-center"><Icon name="Inbox" size={40} className="mx-auto mb-4 text-gray-700" /><p className="font-rajdhani text-gray-600">Заявок пока нет</p></div>
+              <div className="p-16 text-center"><Icon name="ShoppingCart" size={40} className="mx-auto mb-4 text-gray-700" /><p className="font-rajdhani text-gray-600">Заказов нет</p></div>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+              <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
                 {orders.map(order => {
                   const cfg = statusConfig[order.status];
                   return (
                     <button key={order.id} onClick={() => setSelectedOrder(order)}
                       className="w-full px-6 py-4 flex items-center gap-4 hover:bg-white/5 transition-all text-left group">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${cfg.color}15`, border: `1px solid ${cfg.color}30` }}>
-                        <Icon name={cfg.icon as any} size={16} style={{ color: cfg.color }} />
-                      </div>
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cfg.color, boxShadow: `0 0 6px ${cfg.color}` }}></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
                           <span className="font-orbitron text-xs font-600 text-white truncate">{order.title}</span>
                           <span className="font-mono text-xs text-gray-600 flex-shrink-0">{order.id}</span>
                         </div>
-                        <div className="font-rajdhani text-xs text-gray-500">{order.clientName} · {order.category} · {order.createdAt}</div>
+                        <div className="font-rajdhani text-xs text-gray-500">{order.clientName} · {order.createdAt} · {order.budget}</div>
                       </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
-                        <div className="text-right hidden md:block">
-                          <div className="font-orbitron text-xs font-700" style={{ color: '#00ff88' }}>{order.budget}</div>
-                          <div className="font-mono text-xs text-gray-600">{order.deadline}</div>
-                        </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
                         <div className="px-2 py-1 rounded text-xs font-mono" style={{ background: `${cfg.color}15`, color: cfg.color }}>{cfg.label}</div>
                         <Icon name="ChevronRight" size={14} className="text-gray-600 group-hover:text-neon-red transition-colors" />
                       </div>
@@ -447,14 +478,13 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
         {/* TICKETS */}
         {tab === 'tickets' && (
           <div className="glass-card rounded-xl overflow-hidden" style={{ borderColor: 'rgba(255,0,64,0.2)' }}>
-            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'rgba(255,0,64,0.15)' }}>
-              <div className="text-xs font-mono text-gray-500 tracking-widest">// ВСЕ ТИКЕТЫ</div>
-              <span className="font-mono text-xs text-gray-600">{tickets.length} тикетов</span>
+            <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(255,0,64,0.1)' }}>
+              <div className="text-xs font-mono text-gray-500 tracking-widest">// ТИКЕТЫ ({tickets.length})</div>
             </div>
             {tickets.length === 0 ? (
-              <div className="py-20 text-center"><Icon name="Inbox" size={40} className="mx-auto mb-4 text-gray-700" /><p className="font-rajdhani text-gray-600">Тикетов пока нет</p></div>
+              <div className="p-16 text-center"><Icon name="Headphones" size={40} className="mx-auto mb-4 text-gray-700" /><p className="font-rajdhani text-gray-600">Тикетов нет</p></div>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+              <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
                 {tickets.map(ticket => {
                   const cfg = ticketStatusConfig[ticket.status];
                   return (
@@ -482,7 +512,6 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
         {/* NEWS */}
         {tab === 'news' && (
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Form */}
             <div className="glass-card p-6 rounded-xl" style={{ borderColor: 'rgba(255,0,64,0.2)' }}>
               <div className="text-xs font-mono text-gray-500 mb-5 tracking-widest">// {editingNews ? 'РЕДАКТИРОВАТЬ НОВОСТЬ' : 'СОЗДАТЬ НОВОСТЬ'}</div>
               {newsSaved && (
@@ -540,8 +569,6 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
                 </div>
               </div>
             </div>
-
-            {/* List */}
             <div className="space-y-3">
               <div className="text-xs font-mono text-gray-500 tracking-widest px-1">// ОПУБЛИКОВАННЫЕ НОВОСТИ ({news.length})</div>
               {news.length === 0 && <div className="glass-card p-8 rounded-xl text-center"><Icon name="Newspaper" size={32} className="mx-auto mb-3 text-gray-700" /><p className="font-rajdhani text-gray-600">Новостей нет</p></div>}
@@ -557,10 +584,121 @@ export default function AdminPage({ onLogin }: AdminPageProps) {
                       <h3 className="font-orbitron text-xs font-600 text-white truncate">{n.title}</h3>
                       <p className="font-rajdhani text-xs text-gray-500 mt-1 line-clamp-2">{n.content}</p>
                     </div>
-                    <button onClick={() => { setEditingNews(n); setNewsForm({ title: n.title, content: n.content, tag: n.tag, color: n.color }); }}
-                      className="text-gray-600 hover:text-neon-green transition-colors flex-shrink-0 p-1">
-                      <Icon name="Edit2" size={14} />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => { setEditingNews(n); setNewsForm({ title: n.title, content: n.content, tag: n.tag, color: n.color }); }}
+                        className="text-gray-600 hover:text-neon-green transition-colors p-1">
+                        <Icon name="Edit2" size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteNews(n.id)}
+                        className="text-gray-600 hover:text-neon-red transition-colors p-1">
+                        <Icon name="Trash2" size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PROMOCODES */}
+        {tab === 'promocodes' && (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="glass-card p-6 rounded-xl" style={{ borderColor: 'rgba(255,0,64,0.2)' }}>
+              <div className="text-xs font-mono text-gray-500 mb-5 tracking-widest">// {editingPromo ? 'РЕДАКТИРОВАТЬ ПРОМОКОД' : 'СОЗДАТЬ ПРОМОКОД'}</div>
+              {promoSaved && (
+                <div className="mb-4 p-3 rounded-lg flex items-center gap-2" style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)' }}>
+                  <Icon name="CheckCircle" size={14} style={{ color: '#00ff88' }} />
+                  <span className="font-rajdhani text-sm" style={{ color: '#00ff88' }}>Промокод сохранён!</span>
+                </div>
+              )}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">КОД <span className="text-neon-red">*</span></label>
+                  <input type="text" value={promoForm.code} onChange={e => setPromoForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                    placeholder="SUMMER2026" className="w-full px-4 py-3 rounded-lg font-mono text-sm focus:outline-none tracking-widest"
+                    style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#00ff88' }} />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">ОПИСАНИЕ</label>
+                  <input type="text" value={promoForm.description} onChange={e => setPromoForm(p => ({ ...p, description: e.target.value }))}
+                    placeholder="Летняя акция 2026..." className="w-full px-4 py-3 rounded-lg font-rajdhani text-sm focus:outline-none"
+                    style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#e0e0e0' }} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">ТИП СКИДКИ</label>
+                    <select value={promoForm.discountType} onChange={e => setPromoForm(p => ({ ...p, discountType: e.target.value as 'percent' | 'fixed' }))}
+                      className="w-full px-4 py-3 rounded-lg font-rajdhani text-sm focus:outline-none"
+                      style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#e0e0e0' }}>
+                      <option value="percent">Процент (%)</option>
+                      <option value="fixed">Фиксированная (₽)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">РАЗМЕР СКИДКИ</label>
+                    <input type="number" value={promoForm.discountValue} onChange={e => setPromoForm(p => ({ ...p, discountValue: parseInt(e.target.value) || 0 }))}
+                      min={1} max={promoForm.discountType === 'percent' ? 100 : 999999}
+                      className="w-full px-4 py-3 rounded-lg font-mono text-sm focus:outline-none"
+                      style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#00ff88' }} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-mono text-gray-500 mb-2 tracking-widest">ЛИМИТ ИСПОЛЬЗОВАНИЙ (пусто = безлимит)</label>
+                  <input type="number" value={promoForm.maxUses} onChange={e => setPromoForm(p => ({ ...p, maxUses: e.target.value }))}
+                    placeholder="Без ограничений..." min={1}
+                    className="w-full px-4 py-3 rounded-lg font-rajdhani text-sm focus:outline-none"
+                    style={{ background: 'rgba(10,21,32,0.8)', border: '1px solid rgba(255,0,64,0.3)', color: '#e0e0e0' }} />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={handleSavePromo} disabled={!promoForm.code.trim()} className="neon-btn-red flex-1 py-3 text-xs rounded disabled:opacity-40">
+                    <span className="flex items-center justify-center gap-2">
+                      <Icon name={editingPromo ? 'Save' : 'Plus'} size={14} />
+                      {editingPromo ? 'Сохранить' : 'Создать промокод'}
+                    </span>
+                  </button>
+                  {editingPromo && (
+                    <button onClick={() => { setEditingPromo(null); setPromoForm({ code: '', description: '', discountType: 'percent', discountValue: 10, maxUses: '' }); }}
+                      className="px-4 py-3 text-xs font-orbitron text-gray-500 hover:text-gray-300 rounded border border-gray-800 hover:border-gray-600 transition-all">
+                      Отмена
                     </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="text-xs font-mono text-gray-500 tracking-widest px-1">// ПРОМОКОДЫ ({promos.length})</div>
+              {promos.length === 0 && <div className="glass-card p-8 rounded-xl text-center"><Icon name="Tag" size={32} className="mx-auto mb-3 text-gray-700" /><p className="font-rajdhani text-gray-600">Промокодов нет</p></div>}
+              {promos.map(p => (
+                <div key={p.id} className="glass-card p-4 rounded-xl" style={{ borderColor: p.isActive ? 'rgba(0,255,136,0.2)' : 'rgba(255,255,255,0.05)' }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-mono text-sm font-900 tracking-widest" style={{ color: p.isActive ? '#00ff88' : '#555' }}>{p.code}</span>
+                        <span className="px-2 py-0.5 rounded text-xs font-mono" style={{ background: p.isActive ? 'rgba(0,255,136,0.1)' : 'rgba(100,100,100,0.1)', color: p.isActive ? '#00ff88' : '#555' }}>
+                          -{p.discountValue}{p.discountType === 'percent' ? '%' : '₽'}
+                        </span>
+                      </div>
+                      {p.description && <div className="font-rajdhani text-xs text-gray-500 mb-1">{p.description}</div>}
+                      <div className="font-mono text-xs text-gray-700">
+                        {p.usesCount}{p.maxUses ? `/${p.maxUses}` : ''} использований · {p.createdAt}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => handleTogglePromo(p)}
+                        className="p-1 transition-colors"
+                        style={{ color: p.isActive ? '#00ff88' : '#555' }}>
+                        <Icon name={p.isActive ? 'ToggleRight' : 'ToggleLeft'} size={18} />
+                      </button>
+                      <button onClick={() => { setEditingPromo(p); setPromoForm({ code: p.code, description: p.description, discountType: p.discountType, discountValue: p.discountValue, maxUses: p.maxUses?.toString() || '' }); }}
+                        className="text-gray-600 hover:text-neon-green transition-colors p-1">
+                        <Icon name="Edit2" size={14} />
+                      </button>
+                      <button onClick={() => handleDeletePromo(p.id)}
+                        className="text-gray-600 hover:text-neon-red transition-colors p-1">
+                        <Icon name="Trash2" size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

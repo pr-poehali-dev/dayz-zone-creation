@@ -3,6 +3,7 @@ const URLS = {
   news: 'https://functions.poehali.dev/dba8bf1d-edda-4abb-a661-8d96fa287260',
   orders: 'https://functions.poehali.dev/5de8036e-1716-4a5d-9c14-21c34c313489',
   tickets: 'https://functions.poehali.dev/bf20b078-72fe-48d9-808b-3ce481cdffe2',
+  extras: 'https://functions.poehali.dev/a63a2e8d-fa6c-471c-a75c-19df7850fcdc',
 };
 
 function getSessionId(): string {
@@ -26,6 +27,7 @@ async function req<T>(url: string, opts?: RequestInit): Promise<T> {
 
 // AUTH
 export const authApi = {
+  config: () => req<{ clientId: string }>(URLS.auth + '/config', { headers: headers() }),
   me: () => req<{ user: AppUser }>(URLS.auth + '/me', { headers: headers() }),
   logout: () => req<{ ok: boolean }>(URLS.auth + '/logout', { method: 'POST', headers: headers() }),
   updateProfile: (data: { name?: string; bio?: string; email?: string }) =>
@@ -43,6 +45,8 @@ export const newsApi = {
     req<{ news: NewsItem }>(URLS.news, { method: 'POST', headers: headers(), body: JSON.stringify(data) }),
   update: (data: Partial<NewsItem>) =>
     req<{ news: NewsItem }>(URLS.news, { method: 'PUT', headers: headers(), body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    req<{ ok: boolean }>(URLS.news, { method: 'DELETE', headers: headers(), body: JSON.stringify({ id }) }),
 };
 
 // ORDERS
@@ -63,6 +67,28 @@ export const ticketsApi = {
     req<{ ticket: AppTicket }>(URLS.tickets, { method: 'PUT', headers: headers(), body: JSON.stringify({ id, reply }) }),
   setStatus: (id: string, status: string) =>
     req<{ ticket: AppTicket }>(URLS.tickets, { method: 'PUT', headers: headers(), body: JSON.stringify({ id, status }) }),
+};
+
+// PROMOCODES
+export const promocodesApi = {
+  list: () => req<{ promocodes: Promocode[] }>(URLS.extras, { headers: headers() }),
+  check: (code: string) =>
+    req<{ promo: Promocode; valid: boolean }>(URLS.extras + '/check?code=' + encodeURIComponent(code), { headers: headers() }),
+  create: (data: Partial<Promocode>) =>
+    req<{ promo: Promocode }>(URLS.extras, { method: 'POST', headers: headers(), body: JSON.stringify(data) }),
+  update: (data: Partial<Promocode>) =>
+    req<{ promo: Promocode }>(URLS.extras, { method: 'PUT', headers: headers(), body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    req<{ ok: boolean }>(URLS.extras, { method: 'DELETE', headers: headers(), body: JSON.stringify({ id }) }),
+};
+
+// CHAT
+export const chatApi = {
+  list: () => req<{ messages: ChatMessage[] }>(URLS.extras + '/chat', { headers: headers() }),
+  send: (text: string) =>
+    req<{ message: ChatMessage }>(URLS.extras + '/chat', { method: 'POST', headers: headers(), body: JSON.stringify({ text }) }),
+  delete: (id: number) =>
+    req<{ ok: boolean }>(URLS.extras + '/chat', { method: 'DELETE', headers: headers(), body: JSON.stringify({ id }) }),
 };
 
 // Types
@@ -110,4 +136,27 @@ export interface AppTicket {
   status: 'open' | 'answered' | 'closed';
   createdAt: string;
   replies: { author: string; text: string; isAdmin: boolean; date: string }[];
+}
+
+export interface Promocode {
+  id: string;
+  code: string;
+  description: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  maxUses: number | null;
+  usesCount: number;
+  isActive: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  userId: string;
+  username: string;
+  avatar: string;
+  text: string;
+  createdAt: string;
+  fullDate: string;
 }
