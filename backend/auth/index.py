@@ -52,6 +52,14 @@ def handler(event: dict, context) -> dict:
     headers = event.get('headers', {}) or {}
     session_id = headers.get('X-Session-Id', '')
 
+    # GET /auth/config — публичный endpoint для получения Discord CLIENT_ID
+    if method == 'GET' and path.endswith('/config'):
+        return {
+            'statusCode': 200,
+            'headers': CORS,
+            'body': json.dumps({'clientId': DISCORD_CLIENT_ID})
+        }
+
     conn = get_conn()
     try:
         # GET /auth/me — получить текущего пользователя

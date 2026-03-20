@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
-import type { NewsItem } from '@/lib/api';
+import ChatWidget from '@/components/ChatWidget';
+import type { NewsItem, AppUser } from '@/lib/api';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
   onOrderClick: () => void;
   news?: NewsItem[];
+  user?: AppUser | null;
+  onLogin?: () => void;
 }
 
 const services = [
@@ -205,7 +208,7 @@ export default function HomePage({ onNavigate, onOrderClick, news: newsProp }: H
             ].map((item, i) => (
               <div key={i} className="glass-card p-6 rounded-lg group hover:scale-105 transition-all duration-300">
                 <div className="w-12 h-12 mb-4 rounded flex items-center justify-center" style={{ background: `rgba(${item.color === '#00ff88' ? '0,255,136' : item.color === '#00ffff' ? '0,255,255' : item.color === '#ff0040' ? '255,0,64' : item.color === '#ffff00' ? '255,255,0' : '0,255,136'},0.1)`, border: `1px solid ${item.color}30` }}>
-                  <Icon name={item.icon as any} size={24} style={{ color: item.color }} />
+                  <Icon name={item.icon as Parameters<typeof Icon>[0]['name']} size={24} style={{ color: item.color }} />
                 </div>
                 <h3 className="font-orbitron font-700 text-white mb-2 text-sm tracking-wide">{item.title}</h3>
                 <p className="font-rajdhani text-gray-400 text-sm leading-relaxed">{item.desc}</p>
@@ -228,7 +231,7 @@ export default function HomePage({ onNavigate, onOrderClick, news: newsProp }: H
             {services.map((s, i) => (
               <div key={i} className="glass-card p-6 rounded-lg text-center group cursor-pointer hover:scale-105 transition-all duration-300" onClick={() => onNavigate('services')}>
                 <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full" style={{ background: `${s.color}15`, border: `1px solid ${s.color}40`, boxShadow: `0 0 20px ${s.color}20` }}>
-                  <Icon name={s.icon as any} size={28} style={{ color: s.color }} />
+                  <Icon name={s.icon as Parameters<typeof Icon>[0]['name']} size={28} style={{ color: s.color }} />
                 </div>
                 <h3 className="font-orbitron font-700 text-white text-sm mb-2">{s.title}</h3>
                 <p className="font-rajdhani text-gray-400 text-xs leading-relaxed mb-4">{s.desc}</p>
@@ -345,6 +348,20 @@ export default function HomePage({ onNavigate, onOrderClick, news: newsProp }: H
               <span className="text-xs font-mono" style={{ color: '#0088cc' }}>Подписаться →</span>
             </a>
           </div>
+        </div>
+      </section>
+
+      {/* CHAT */}
+      <section className="py-24 px-4" style={{ background: 'rgba(0,255,136,0.02)' }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="text-xs font-mono text-gray-500 tracking-widest mb-3">// СООБЩЕСТВО</div>
+            <h2 className="font-orbitron text-3xl md:text-4xl font-700 mb-4" style={{ color: '#00ff88' }}>
+              Общий <span style={{ color: '#00ffff' }}>чат</span>
+            </h2>
+            <p className="font-rajdhani text-gray-400">Общайся с другими участниками сайта в реальном времени</p>
+          </div>
+          <ChatWidget user={user ?? null} onLogin={onLogin ?? (() => {})} />
         </div>
       </section>
 

@@ -1,10 +1,12 @@
 {
   "tests": [
     {
-      "name": "GET /me unauthorized",
+      "name": "GET /config — Discord CLIENT_ID",
       "method": "GET",
-      "path": "/",
-      "expectedStatus": 401
+      "path": "/config",
+      "expectedStatus": 200,
+      "expectedBody": {"clientId": ""},
+      "bodyMatcher": "partial"
     }
   ]
 }

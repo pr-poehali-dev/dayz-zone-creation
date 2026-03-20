@@ -8,6 +8,7 @@ import MyOrdersPage from './MyOrdersPage';
 import AdminPage from './AdminPage';
 import ProfilePage from './ProfilePage';
 import SupportPage from './SupportPage';
+import PromocodesPage from './PromocodesPage';
 import { authApi, ordersApi, newsApi, type AppUser, type AppOrder, type NewsItem } from '@/lib/api';
 
 interface NavUser {
@@ -30,9 +31,12 @@ export default function Index() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [orderCategory, setOrderCategory] = useState<string | undefined>(undefined);
   const [authChecked, setAuthChecked] = useState(false);
+  const [discordClientId, setDiscordClientId] = useState('');
 
-  // Проверяем сессию при загрузке
   useEffect(() => {
+    // Загружаем Discord CLIENT_ID из бэкенда
+    authApi.config().then(d => setDiscordClientId(d.clientId)).catch(() => {});
+
     const sid = localStorage.getItem('sessionId');
     if (sid) {
       authApi.me()
@@ -54,11 +58,9 @@ export default function Index() {
       }).catch(console.error);
     }
 
-    // Загружаем новости
     newsApi.list().then(d => setNews(d.news)).catch(() => {});
   }, []);
 
-  // Загружаем заказы при авторизации
   useEffect(() => {
     if (user) {
       ordersApi.list().then(d => setOrders(d.orders)).catch(() => {});
@@ -68,9 +70,12 @@ export default function Index() {
   }, [user]);
 
   const handleLogin = () => {
-    const DISCORD_CLIENT_ID = '1234567890';
+    if (!discordClientId) {
+      alert('Discord авторизация не настроена. Добавьте DISCORD_CLIENT_ID в секреты проекта.');
+      return;
+    }
     const redirect = encodeURIComponent(window.location.origin);
-    window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${redirect}&response_type=code&scope=identify`;
+    window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${discordClientId}&redirect_uri=${redirect}&response_type=code&scope=identify`;
   };
 
   const handleLogout = async () => {
@@ -100,12 +105,14 @@ export default function Index() {
     } catch { /* silent */ }
   };
 
+  void handleUpdateOrder;
+
   const navUser = user ? toNavUser(user) : null;
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage onNavigate={setCurrentPage} onOrderClick={handleOrderClick} news={news} />;
+        return <HomePage onNavigate={setCurrentPage} onOrderClick={handleOrderClick} news={news} user={user} onLogin={handleLogin} />;
       case 'services':
         return <ServicesPage onOrderClick={handleOrderClick} />;
       case 'portfolio':
@@ -130,7 +137,7 @@ export default function Index() {
           />
         );
       case 'admin':
-        return <AdminPage onLogin={handleLogin} />;
+        return <AdminPage user={user} onLogin={handleLogin} />;
       case 'profile':
         return (
           <ProfilePage
@@ -142,8 +149,10 @@ export default function Index() {
         );
       case 'support':
         return <SupportPage user={navUser} onLogin={handleLogin} />;
+      case 'promocodes':
+        return <PromocodesPage />;
       default:
-        return <HomePage onNavigate={setCurrentPage} onOrderClick={handleOrderClick} news={news} />;
+        return <HomePage onNavigate={setCurrentPage} onOrderClick={handleOrderClick} news={news} user={user} onLogin={handleLogin} />;
     }
   };
 
